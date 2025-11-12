@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestão de Códigos Postais</title>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: '#345d9a',
+              brandLight: '#5b86d6',
+              brandHover: '#2b4f7a',
+              canvas: '#fbfbfc',
+              surface: '#f1f3f5',
+              band: '#f4f6f8',
+              textDark: '#0b1220',
+              textMuted: '#556575',
+              borderSoft: '#e6e9ed',
+              badgeBg: '#eaf1ff',
+              badgeText: '#345d9a',
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-canvas text-textDark">
+    <div class="border-b border-borderSoft bg-white">
+      <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+        <a
+          href="/search"
+          class="inline-flex items-center gap-2 rounded-lg border border-[#e6eefc] px-3 py-2 text-sm font-semibold text-brand transition hover:bg-[#f7f9ff]"
+        >
+          <span aria-hidden="true">←</span>
+          Voltar à pesquisa
+        </a>
+
+        <% if (isAdmin) { %>
+        <form action="/logout" method="POST">
+          <button
+            type="submit"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brandHover"
+          >
+            Terminar sessão
+          </button>
+        </form>
+        <% } %>
+      </div>
+    </div>
+
+    <%
+      const filtersSafe = filters || {};
+      const filterParams = [];
+      if (filtersSafe.localidade) {
+        filterParams.push(`localidade=${encodeURIComponent(filtersSafe.localidade)}`);
+      }
+      if (filtersSafe.prefixo) {
+        filterParams.push(`prefixo=${encodeURIComponent(filtersSafe.prefixo)}`);
+      }
+      if (filtersSafe.sabado) {
+        filterParams.push(`sabado=${encodeURIComponent(filtersSafe.sabado)}`);
+      }
+      const filtersQueryString = filterParams.length ? `?${filterParams.join('&')}` : '';
+    %>
+
+    <main class="mx-auto max-w-6xl px-6 py-12 space-y-10">
+      <header class="text-center space-y-3">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-brand">
+          Campos Cadilhe · Operações
+        </p>
+        <h1 class="text-3xl font-semibold text-textDark">
+          Gestão de Códigos Postais
+        </h1>
+        <p class="mx-auto max-w-3xl text-sm text-textMuted">
+          Pesquise, crie e atualize registos da coleção Cadilhes.Locales. Utilize as sugestões da CTTCódigoPostal para preencher informação adicional de forma rápida.
+        </p>
+      </header>
+
+      <section class="rounded-2xl border border-borderSoft bg-white p-6 shadow-sm space-y-4">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-textDark">Carregar ou criar registo</h2>
+            <p class="text-sm text-textMuted">
+              Introduza um código postal para editar ou clique em “Novo registo” para começar uma ficha em branco.
+            </p>
+          </div>
+          <a
+            href="/gestao/codigos<%= filtersQueryString %>"
+            class="inline-flex items-center gap-2 rounded-lg border border-[#e6eefc] px-4 py-2 text-sm font-semibold text-brand transition hover:bg-[#f7f9ff]"
+          >
+            + Novo registo
+          </a>
+        </div>
+
+        <form class="flex flex-col gap-4 md:flex-row" method="GET">
+          <input type="hidden" name="localidade" value="<%= filtersSafe.localidade || '' %>" />
+          <input type="hidden" name="prefixo" value="<%= filtersSafe.prefixo || '' %>" />
+          <input type="hidden" name="sabado" value="<%= filtersSafe.sabado || '' %>" />
+
+          <div class="flex-1">
+            <label for="postalCode" class="block text-sm font-semibold text-textMuted"
+              >Código Postal</label
+            >
+            <input
+              id="postalCode"
+              type="text"
+              name="postalCode"
+              placeholder="Ex: 1000-001"
+              value="<%= postalCode %>"
+              required
+              class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+            />
+          </div>
+          <button
+            type="submit"
+            class="self-end rounded-lg bg-brand px-6 py-3 text-white font-semibold shadow-sm transition hover:bg-brandHover md:self-center"
+          >
+            Carregar
+          </button>
+        </form>
+
+        <% if (notFoundMessage) { %>
+        <div class="rounded-xl border border-amber-200 bg-[#fff7e6] px-6 py-4 text-sm text-amber-800">
+          <%= notFoundMessage %>
+        </div>
+        <% } %>
+
+        <% if (message) { %>
+        <div class="rounded-xl border border-[#d5e4ff] bg-white px-6 py-4 text-sm text-brand">
+          <%= message %>
+        </div>
+        <% } %>
+
+        <% if (error) { %>
+        <div class="rounded-xl border border-rose-200 bg-[#fff1f3] px-6 py-4 text-sm text-rose-700">
+          <%= error %>
+        </div>
+        <% } %>
+      </section>
+
+      <section class="rounded-2xl border border-borderSoft bg-white p-8 shadow-sm">
+        <h2 class="text-xl font-semibold text-textDark">Dados do Código Postal</h2>
+        <p class="mt-2 text-sm text-textMuted">
+          Edite os campos conforme necessário. Utilize “S” para sim e “N” para não no campo Sábado.
+        </p>
+
+        <form class="mt-6 space-y-6" method="POST">
+          <div class="grid gap-6 md:grid-cols-2">
+            <div>
+              <label for="cp" class="block text-sm font-semibold text-textMuted"
+                >Código Postal</label
+              >
+              <input
+                id="cp"
+                name="cp"
+                type="text"
+                value="<%= formValues.CP %>"
+                required
+                class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+              />
+              <% if (dbRecordId) { %>
+              <p class="mt-1 text-xs text-textMuted">
+                _id: <span class="font-mono text-textDark"><%= dbRecordId %></span>
+              </p>
+              <% } %>
+            </div>
+
+            <div>
+              <label
+                for="localidade"
+                class="block text-sm font-semibold text-textMuted"
+                >Localidade</label
+              >
+              <input
+                id="localidade"
+                name="localidade"
+                type="text"
+                value="<%= formValues.LOCALIDADE %>"
+                class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+              />
+            </div>
+
+            <div>
+              <label for="giro" class="block text-sm font-semibold text-textMuted"
+                >Giro</label
+              >
+              <input
+                id="giro"
+                name="giro"
+                type="text"
+                value="<%= formValues.GIRO %>"
+                class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+              />
+            </div>
+
+            <div>
+              <label for="centro" class="block text-sm font-semibold text-textMuted"
+                >Centro</label
+              >
+              <input
+                id="centro"
+                name="centro"
+                type="text"
+                value="<%= formValues.CENTRO %>"
+                class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+              />
+            </div>
+
+            <div>
+              <label for="sabado" class="block text-sm font-semibold text-textMuted"
+                >Entrega ao Sábado (S/N)</label
+              >
+              <input
+                id="sabado"
+                name="sabado"
+                type="text"
+                maxlength="1"
+                value="<%= formValues.SABADO %>"
+                class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-6 py-3 text-white font-semibold shadow-sm transition hover:bg-brandHover"
+          >
+            Guardar registo
+          </button>
+        </form>
+
+        <% if (apiData) { %>
+        <div class="mt-8 space-y-4">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl text-brandLight">🗺️</span>
+            <h3 class="text-lg font-semibold text-textDark">
+              Sugestões da CTTCódigoPostal
+            </h3>
+          </div>
+          <div class="grid gap-6 md:grid-cols-2">
+            <% apiData.forEach((entry, index) => { %>
+            <article class="space-y-3 rounded-2xl border border-borderSoft bg-surface p-6 shadow-sm">
+              <header class="flex items-center gap-2 text-sm text-textMuted">
+                <span
+                  class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-badgeBg font-semibold text-badgeText"
+                >
+                  <%= index + 1 %>
+                </span>
+                <p class="font-semibold text-textDark">Morada sugerida</p>
+              </header>
+              <dl class="space-y-2 text-sm text-textMuted">
+                <div>
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-textMuted">Morada</dt>
+                  <dd class="text-textDark">
+                    <%= entry.morada || '—' %>
+                    <%= entry.porta ? ', ' + entry.porta : '' %>
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-textMuted">Localidade</dt>
+                  <dd class="text-textDark"><%= entry.localidade || '—' %></dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-textMuted">Freguesia</dt>
+                  <dd class="text-textDark"><%= entry.freguesia || '—' %></dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-textMuted">Concelho</dt>
+                  <dd class="text-textDark"><%= entry.concelho || '—' %></dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-textMuted">Distrito</dt>
+                  <dd class="text-textDark"><%= entry.distrito || '—' %></dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-textMuted">Código Postal</dt>
+                  <dd class="text-textDark"><%= entry['codigo-postal'] || '—' %></dd>
+                </div>
+                <div>
+                  <dt class="text-xs font-semibold uppercase tracking-wide text-textMuted">Info Local</dt>
+                  <dd class="text-textDark"><%= entry['info-local'] || '—' %></dd>
+                </div>
+              </dl>
+            </article>
+            <% }) %>
+          </div>
+        </div>
+        <% } else if (apiError && postalCode) { %>
+        <div class="mt-6 rounded-xl border border-amber-200 bg-[#fff7e6] px-6 py-4 text-sm text-amber-800">
+          <%= apiError %>
+        </div>
+        <% } %>
+      </section>
+
+      <section class="rounded-2xl border border-borderSoft bg-white p-8 shadow-sm space-y-6">
+        <div>
+          <h2 class="text-xl font-semibold text-textDark">
+            Catálogo de códigos existentes
+          </h2>
+          <p class="mt-2 text-sm text-textMuted">
+            Filtre por localidade, prefixo ou disponibilidade ao sábado. Selecione um registo para o carregar no formulário de edição acima.
+          </p>
+        </div>
+
+        <form method="GET" class="grid items-end gap-4 md:grid-cols-4">
+          <div class="md:col-span-2">
+            <label for="localidade" class="block text-sm font-semibold text-textMuted"
+              >Localidade</label
+            >
+            <input
+              id="localidade"
+              name="localidade"
+              type="text"
+              value="<%= filtersSafe.localidade || '' %>"
+              placeholder="Ex: Lisboa"
+              class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+            />
+          </div>
+
+          <div>
+            <label for="prefixo" class="block text-sm font-semibold text-textMuted"
+              >Prefixo (CP4)</label
+            >
+            <input
+              id="prefixo"
+              name="prefixo"
+              type="text"
+              value="<%= filtersSafe.prefixo || '' %>"
+              placeholder="Ex: 1000"
+              maxlength="4"
+              class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+            />
+          </div>
+
+          <div>
+            <label for="filtroSabado" class="block text-sm font-semibold text-textMuted"
+              >Entrega Sábado</label
+            >
+            <select
+              id="filtroSabado"
+              name="sabado"
+              class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+            >
+              <option value="" <%= !filtersSafe.sabado ? 'selected' : '' %>>Todos</option>
+              <option value="S" <%= filtersSafe.sabado === 'S' ? 'selected' : '' %>>Só S</option>
+              <option value="N" <%= filtersSafe.sabado === 'N' ? 'selected' : '' %>>Só N</option>
+            </select>
+          </div>
+
+          <input type="hidden" name="postalCode" value="<%= postalCode %>" />
+          <input type="hidden" name="pagina" value="<%= (pagination && pagination.page) || 1 %>" />
+
+          <div class="flex gap-3 md:col-span-4">
+            <button
+              type="submit"
+              class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-white font-semibold shadow-sm transition hover:bg-brandHover"
+            >
+              Aplicar filtros
+            </button>
+            <a
+              href="/gestao/codigos<%= postalCode ? `?postalCode=${encodeURIComponent(postalCode)}` : '' %>"
+              class="inline-flex items-center justify-center gap-2 rounded-lg border border-[#e6eefc] px-4 py-2 text-sm font-semibold text-brand transition hover:bg-[#f7f9ff]"
+            >
+              Limpar filtros
+            </a>
+          </div>
+        </form>
+
+        <div class="space-y-5">
+          <div class="flex flex-col gap-2 text-sm text-textMuted sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              A mostrar
+              <span class="font-semibold text-textDark"><%= (localesList && localesList.length) || 0 %></span>
+              resultados <%= filtersSafe.localidade || filtersSafe.prefixo || filtersSafe.sabado ? '(após filtragem)' : '' %>
+            </span>
+            <span>
+              Página
+              <span class="font-semibold text-textDark"><%= (pagination && pagination.page) || 1 %></span>
+              de <%= (pagination && pagination.totalPages) || 1 %> &middot; Total:
+              <%= (pagination && pagination.totalCount) || 0 %>
+            </span>
+          </div>
+
+          <% if (localesList && localesList.length) { %>
+          <div class="grid gap-3 lg:grid-cols-2">
+            <% localesList.forEach((item) => { %>
+            <%
+              const itemParams = [`postalCode=${encodeURIComponent(item.CP)}`];
+              if (filtersSafe.localidade) {
+                itemParams.push(`localidade=${encodeURIComponent(filtersSafe.localidade)}`);
+              }
+              if (filtersSafe.prefixo) {
+                itemParams.push(`prefixo=${encodeURIComponent(filtersSafe.prefixo)}`);
+              }
+              if (filtersSafe.sabado) {
+                itemParams.push(`sabado=${encodeURIComponent(filtersSafe.sabado)}`);
+              }
+              const itemQuery = `?${itemParams.join('&')}`;
+              const isActive = postalCode && postalCode === item.CP;
+              const sabadoIcon = item.SABADO === 'S' ? '📦' : item.SABADO === 'N' ? '🚫' : 'ℹ️';
+              const sabadoLabel =
+                item.SABADO === 'S' ? 'Entrega ao sábado' : item.SABADO === 'N' ? 'Sem sábado' : 'Sem informação';
+            %>
+            <a
+              href="/gestao/codigos<%= itemQuery %>"
+              class="rounded-xl border px-4 py-3 transition shadow-sm <%= isActive ? 'border-brandLight bg-badgeBg' : 'border-borderSoft bg-white hover:border-brandLight hover:bg-badgeBg' %>"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-sm font-semibold text-textDark"><%= item.CP %></p>
+                  <p class="text-xs text-textMuted">
+                    <%= item.LOCALIDADE || '—' %>
+                    <% if (item.GIRO) { %>
+                    · <span class="uppercase">Giro <%= item.GIRO %></span>
+                    <% } %>
+                  </p>
+                </div>
+                <div class="text-right text-xs text-textMuted">
+                  <span class="text-lg"><%= sabadoIcon %></span>
+                  <p><%= sabadoLabel %></p>
+                </div>
+              </div>
+            </a>
+            <% }) %>
+          </div>
+          <% } else { %>
+          <div class="rounded-xl border border-borderSoft bg-surface px-4 py-6 text-center text-sm text-textMuted">
+            Não foram encontrados registos com os filtros actuais.
+          </div>
+          <% } %>
+
+          <% if (pagination && pagination.totalPages > 1) { %>
+          <div class="flex flex-col gap-3 pt-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-wrap gap-2">
+              <%
+                const pageNumbers = [];
+                const totalPages = pagination.totalPages;
+                const currentPage = pagination.page;
+                for (let p = 1; p <= totalPages; p += 1) {
+                  if (
+                    p === 1 ||
+                    p === totalPages ||
+                    (p >= currentPage - 2 && p <= currentPage + 2)
+                  ) {
+                    pageNumbers.push(p);
+                  } else if (pageNumbers[pageNumbers.length - 1] !== '…') {
+                    pageNumbers.push('…');
+                  }
+                }
+              %>
+              <% pageNumbers.forEach((p) => { %>
+              <% if (p === '…') { %>
+              <span class="px-3 py-1 text-borderSoft select-none">…</span>
+              <% } else { %>
+              <%
+                const pageParams = [];
+                if (postalCode) {
+                  pageParams.push(`postalCode=${encodeURIComponent(postalCode)}`);
+                }
+                if (filtersSafe.localidade) {
+                  pageParams.push(`localidade=${encodeURIComponent(filtersSafe.localidade)}`);
+                }
+                if (filtersSafe.prefixo) {
+                  pageParams.push(`prefixo=${encodeURIComponent(filtersSafe.prefixo)}`);
+                }
+                if (filtersSafe.sabado) {
+                  pageParams.push(`sabado=${encodeURIComponent(filtersSafe.sabado)}`);
+                }
+                pageParams.push(`pagina=${p}`);
+                const pageQuery = `?${pageParams.join('&')}`;
+                const active = p === currentPage;
+              %>
+              <a
+                href="/gestao/codigos<%= pageQuery %>"
+                class="rounded-md px-3 py-1 border text-sm font-medium transition <%= active ? 'border-brandLight bg-brand text-white' : 'border-borderSoft text-textMuted hover:bg-badgeBg hover:text-brand' %>"
+              >
+                <%= p %>
+              </a>
+              <% } %>
+              <% }) %>
+            </div>
+
+            <div class="flex gap-2">
+              <%
+                const prevPage = Math.max(pagination.page - 1, 1);
+                const nextPage = Math.min(pagination.page + 1, pagination.totalPages);
+                const navParamsBase = [];
+                if (postalCode) {
+                  navParamsBase.push(`postalCode=${encodeURIComponent(postalCode)}`);
+                }
+                if (filtersSafe.localidade) {
+                  navParamsBase.push(`localidade=${encodeURIComponent(filtersSafe.localidade)}`);
+                }
+                if (filtersSafe.prefixo) {
+                  navParamsBase.push(`prefixo=${encodeURIComponent(filtersSafe.prefixo)}`);
+                }
+                if (filtersSafe.sabado) {
+                  navParamsBase.push(`sabado=${encodeURIComponent(filtersSafe.sabado)}`);
+                }
+                const prevQuery = `?${navParamsBase.concat(`pagina=${prevPage}`).join('&')}`;
+                const nextQuery = `?${navParamsBase.concat(`pagina=${nextPage}`).join('&')}`;
+              %>
+              <a
+                href="/gestao/codigos<%= prevQuery %>"
+                class="rounded-md px-3 py-1 border text-sm font-medium transition <%= pagination.page === 1 ? 'border-borderSoft text-borderSoft cursor-not-allowed pointer-events-none' : 'border-borderSoft text-textMuted hover:bg-badgeBg hover:text-brand' %>"
+              >
+                Anterior
+              </a>
+              <a
+                href="/gestao/codigos<%= nextQuery %>"
+                class="rounded-md px-3 py-1 border text-sm font-medium transition <%= pagination.page === pagination.totalPages ? 'border-borderSoft text-borderSoft cursor-not-allowed pointer-events-none' : 'border-borderSoft text-textMuted hover:bg-badgeBg hover:text-brand' %>"
+              >
+                Seguinte
+              </a>
+            </div>
+          </div>
+          <% } %>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
+

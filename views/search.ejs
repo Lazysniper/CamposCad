@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pesquisa de Código Postal</title>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: '#1e3a5f',       // azul escuro seco
+              brandLight: '#5b86d6',  // azul claro
+              brandHover: '#162b47',  // versão mais escura
+              canvas: '#fbfbfc',
+              surface: '#f1f3f5',
+              band: '#f4f6f8',
+              textDark: '#0b1220',
+              textMuted: '#556575',
+              borderSoft: '#e6e9ed',
+              badgeBg: '#eaf1ff',
+              badgeText: '#345d9a',
+              tableEven: '#fafbfc',
+              tableHover: '#f4f8ff',
+              tableAction: '#f1f5ff',
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen bg-canvas text-textDark">
+    <div class="bg-gradient-to-br from-brand to-brandLight">
+      <div class="mx-auto max-w-5xl px-6 py-14 text-center text-textDark">
+        <p class="text-sm uppercase tracking-[0.3em] opacity-80 text-textDark ">
+          Campos Cadilhe · Rede de Entregas
+        </p>
+        <h1 class="mt-4 text-4xl font-semibold text-textDark">
+          Consulta de Código Postal
+        </h1>
+        <p class="mx-auto mt-4 max-w-2xl text-base ">
+          Pesquise se já entregamos na sua zona e consulte detalhes enriquecidos da base Cadilhes.Locales e da CTTCódigoPostal.
+        </p>
+      </div>
+    </div>
+
+    <div class="mx-auto max-w-5xl px-6 py-12 space-y-10">
+      <form
+        action="/search"
+        method="GET"
+        class="flex flex-col gap-4 rounded-2xl border border-borderSoft bg-surface p-6 shadow-sm md:flex-row"
+      >
+        <div class="flex-1">
+          <label for="postalCode" class="block text-sm font-semibold text-textMuted"
+            >Código Postal</label
+          >
+          <input
+            id="postalCode"
+            type="text"
+            name="postalCode"
+            placeholder="Ex: 1000-001"
+            value="<%= postalCode %>"
+            required
+            class="mt-1 w-full rounded-lg border border-borderSoft bg-white px-3 py-3 text-textDark shadow-sm focus:outline-none focus:ring-2 focus:ring-brandLight focus:border-brandLight"
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="self-end rounded-lg bg-brand px-6 py-3 text-textDark font-semibold shadow-sm transition hover:bg-brandHover md:self-center"
+        >
+          Pesquisar
+        </button>
+      </form>
+
+      <% const primeiraMorada = apiData && apiData.length ? apiData[0] : null; %>
+
+      <% if (error) { %>
+      <div class="rounded-2xl border border-rose-200 bg-[#fff1f3] px-6 py-6 shadow-sm">
+        <div class="flex items-start gap-3">
+          <span class="text-3xl">❌</span>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-rose-500">
+              Erro na pesquisa
+            </p>
+            <p class="mt-2 text-base text-rose-700"><%= error %></p>
+          </div>
+        </div>
+      </div>
+      <% } else if (result) { %>
+      <section class="rounded-2xl border border-[#d5e4ff] bg-white px-6 py-6 shadow-sm">
+        <div class="flex items-start gap-3">
+          <span class="text-3xl text-brandLight">✅</span>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-brandLight">
+              Registo encontrado
+            </p>
+            <p class="mt-2 text-lg font-semibold text-textDark">
+              Entregamos na zona do código
+              <span class="text-brandLight"><%= result.CP || postalCode %></span>
+            </p>
+            <p class="mt-2 text-sm text-textMuted">
+              A equipa está pronta para servir este destino. Obrigado por confiar na Campos Cadilhe.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          <div class="rounded-xl border border-borderSoft bg-surface px-4 py-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-textMuted">
+              Localidade
+            </p>
+            <p class="mt-1 text-base font-medium text-textDark">
+              <%= (primeiraMorada && primeiraMorada.localidade) || result.LOCALIDADE || '—' %>
+            </p>
+          </div>
+          <div class="rounded-xl border border-borderSoft bg-surface px-4 py-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-textMuted">Giro</p>
+            <p class="mt-1 text-base font-medium text-textDark"><%= result.GIRO || '—' %></p>
+          </div>
+          <div class="rounded-xl border border-borderSoft bg-surface px-4 py-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-textMuted">Centro</p>
+            <p class="mt-1 text-base font-medium text-textDark"><%= result.CENTRO || '—' %></p>
+          </div>
+          <div class="flex items-center justify-between rounded-xl border border-borderSoft bg-surface px-4 py-4">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-textMuted">
+                Entrega ao Sábado
+              </p>
+              <p class="mt-1 text-base font-medium text-textDark">
+                <%= result.SABADO === 'S' ? 'Sim' : result.SABADO === 'N' ? 'Não' : '—' %>
+              </p>
+            </div>
+            <span class="text-2xl text-brandLight">
+              <%= result.SABADO === 'S' ? '📦' : result.SABADO === 'N' ? '🚫' : 'ℹ️' %>
+            </span>
+          </div>
+        </div>
+      </section>
+      <% } else if (notFoundMessage) { %>
+      <div class="rounded-2xl border border-[#f7d3d6] bg-[#fff5f6] px-6 py-6 shadow-sm">
+        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div class="flex items-start gap-3">
+            <span class="text-3xl">🚚</span>
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-[0.3em] text-rose-500">
+                Ainda não chegámos aí
+              </p>
+              <p class="mt-2 text-base font-semibold text-textDark">
+                Ainda não entregamos nessa zona.
+              </p>
+              <p class="mt-2 text-sm text-textMuted">
+                Estamos a trabalhar para expandir rapidamente a nossa rota. Envie-nos um email para
+                <a class="font-medium text-brandLight underline decoration-brandLight underline-offset-4" href="mailto:suport@CamposCsdilhe.pt">
+                  suport@CamposCsdilhe.pt
+                </a>
+                e avise-nos da sua necessidade. Vamos alertá-lo assim que passarmos a entregar aí!
+              </p>
+            </div>
+          </div>
+          <a
+            href="mailto:suport@CamposCsdilhe.pt?subject=Interesse%20em%20entregas%20no%20c%C3%B3digo%20<%= encodeURIComponent(postalCode) %>"
+            class="inline-flex items-center gap-2 self-start rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-textDark transition hover:bg-brandHover"
+          >
+            Contactar suporte
+          </a>
+        </div>
+      </div>
+      <% } %>
+
+      <% if (apiError) { %>
+      <div class="rounded-2xl border border-amber-200 bg-[#fff7e6] px-6 py-5 shadow-sm text-amber-800">
+        <p class="text-sm font-semibold uppercase tracking-wide">API Externa</p>
+        <p class="mt-2 text-sm"><%= apiError %></p>
+      </div>
+      <% } %>
+
+      <% if (apiData) { %>
+      <section class="space-y-5">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl text-brandLight">🗺️</span>
+          <h2 class="text-lg font-semibold text-textDark">
+            Informação adicional da CTTCódigoPostal
+          </h2>
+        </div>
+        <div class="grid gap-6 md:grid-cols-2">
+          <% apiData.forEach((entry, index) => { %>
+          <article
+            class="space-y-3 rounded-2xl border border-borderSoft bg-white p-6 shadow-sm"
+          >
+            <header class="flex items-center gap-2 text-sm text-textMuted">
+              <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-badgeBg font-semibold text-badgeText">
+                <%= index + 1 %>
+              </span>
+              <p class="font-semibold text-textDark">Morada sugerida</p>
+            </header>
+            <dl class="mt-3 space-y-2 text-sm text-textMuted">
+              <% Object.entries(entry).forEach(([key, value]) => { %>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-textMuted"><%= key %></dt>
+                <dd class="text-textDark break-words">
+                  <%= value || '—' %>
+                </dd>
+              </div>
+              <% }) %>
+            </dl>
+          </article>
+          <% }) %>
+        </div>
+      </section>
+      <% } %>
+
+      <div class="mt-10 text-center">
+        <a
+          class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-textDark transition hover:bg-brandHover"
+          href="/"
+        >
+          <span aria-hidden="true">←</span>
+          Voltar ao upload CSV
+        </a>
+      </div>
+    </div>
+  </body>
+</html>
