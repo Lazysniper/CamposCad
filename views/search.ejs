@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pesquisa de Código Postal</title>
+    <meta name="description" content="Pesquise códigos postais e verifique se entregamos na sua zona. Consulta de códigos postais com informações detalhadas da base Cadilhes.Locales e CTTCódigoPostal." />
+    <meta name="keywords" content="código postal, pesquisa postal, entregas, Campos Cadilhe, Portugal" />
+    <title>Pesquisa de Código Postal - Campos Cadilhe</title>
     <script>
       tailwind.config = {
         theme: {
@@ -17,7 +19,7 @@
               surface: '#f1f3f5',
               band: '#f4f6f8',
               textDark: '#0b1220',
-              textMuted: '#556575',
+              textMuted: '#3d4a5c',   // Darkened for better contrast (WCAG AA compliant)
               borderSoft: '#e6e9ed',
               badgeBg: '#eaf1ff',
               badgeText: '#345d9a',
@@ -69,7 +71,7 @@
 
         <button
           type="submit"
-          class="self-end rounded-lg bg-brand px-6 py-3 text-textDark font-semibold shadow-sm transition hover:bg-brandHover md:self-center"
+          class="self-end rounded-lg bg-brand px-6 py-3 text-white font-semibold shadow-sm transition hover:bg-brandHover md:self-center"
         >
           Pesquisar
         </button>
@@ -162,7 +164,7 @@
           </div>
           <a
             href="mailto:suport@CamposCsdilhe.pt?subject=Interesse%20em%20entregas%20no%20c%C3%B3digo%20<%= encodeURIComponent(postalCode) %>"
-            class="inline-flex items-center gap-2 self-start rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-textDark transition hover:bg-brandHover"
+            class="inline-flex items-center gap-2 self-start rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brandHover"
           >
             Contactar suporte
           </a>
@@ -214,7 +216,7 @@
 
       <div class="mt-10 text-center">
         <a
-          class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-textDark transition hover:bg-brandHover"
+          class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brandHover"
           href="/"
         >
           <span aria-hidden="true">←</span>

@@ -10,10 +10,9 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI =
-  process.env.MONGODB_URI ||
-  'mongodb+srv://igorfilipelima:Cinel2024!@cluster0.yhc6bki.mongodb.net/?appName=Cluster0';
+  process.env.MONGODB_URI;
 const POSTAL_API_KEY =
-  process.env.POSTAL_API_KEY || 'c584c4e5875649f483b1f26dd3d69c54';
+  process.env.POSTAL_API_KEY;
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '1234';
 const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;
