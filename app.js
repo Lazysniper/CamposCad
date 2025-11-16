@@ -137,6 +137,15 @@ app.post('/login', (req, res) => {
   const password = (req.body.password || '').trim();
   const nextUrl = req.body.next || '/gestao/codigos';
 
+  // Check if admin credentials are configured
+  if (!ADMIN_USER || !ADMIN_PASSWORD) {
+    console.error('ADMIN_USER or ADMIN_PASSWORD not set in environment variables');
+    return res.status(500).render('login', {
+      error: 'Configuração do servidor incompleta. Contacte o administrador.',
+      next: nextUrl,
+    });
+  }
+
   if (username === ADMIN_USER && password === ADMIN_PASSWORD) {
     req.session.isAdmin = true;
     return res.redirect(nextUrl);
