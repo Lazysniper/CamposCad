@@ -1,8 +1,7 @@
-require('dotenv').config();
-
+const serverless = require('serverless-http');
+const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const express = require('express');
 const session = require('express-session');
 const multer = require('multer');
 const csv = require('csv-parser');
@@ -10,24 +9,40 @@ const mongoose = require('mongoose');
 const fetch = require('node-fetch');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const MONGODB_URI =
-  process.env.MONGODB_URI;
-const POSTAL_API_KEY =
-  process.env.POSTAL_API_KEY;
+const MONGODB_URI = process.env.MONGODB_URI;
+const POSTAL_API_KEY = process.env.POSTAL_API_KEY;
 const ADMIN_USER = process.env.ADMIN_USER;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;
+const SESSION_SECRET = process.env.SESSION_SECRET || 'postal-session-secret-change-in-production';
 
 mongoose.set('strictQuery', false);
 
-const uploadsDir = path.join(__dirname, 'uploads');
+// For Netlify, we'll use memory storage for uploads (or you can use S3)
+const uploadsDir = path.join('/tmp', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// MongoDB connection - connect once and reuse
+let mongooseConnection = null;
+async function connectDB() {
+  if (!mongooseConnection) {
+    if (!MONGODB_URI || typeof MONGODB_URI !== 'string') {
+      throw new Error('MONGODB_URI is not defined. Please set it in Netlify environment variables.');
+    }
+    mongooseConnection = await mongoose.connect(MONGODB_URI, {
+      dbName: 'Cadilhes',
+    });
+    console.log('Connected to MongoDB');
+  }
+  return mongooseConnection;
+}
 
 function requireAdmin(req, res, next) {
   if (req.session && req.session.isAdmin) {
     return next();
   }
-
   const destination = req.originalUrl || '/gestao/codigos';
   return res.redirect(`/login?next=${encodeURIComponent(destination)}`);
 }
@@ -36,8 +51,7 @@ async function fetchPostalApi(postalCode) {
   if (!/^\d{4}-\d{3}$/.test(postalCode)) {
     return {
       data: null,
-      error:
-        'O código postal deve estar no formato XXXX-XXX para consultar a API externa.',
+      error: 'O código postal deve estar no formato XXXX-XXX para consultar a API externa.',
     };
   }
 
@@ -92,12 +106,12 @@ const upload = multer({
 });
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(__dirname, '../../views'));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'postal-session-secret',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -112,11 +126,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// Connect to DB before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('DB connection error:', err);
+    res.status(500).send('Database connection error');
+  }
+});
+
 app.get('/', (req, res) => {
   res.redirect('/search');
 });
 
-// Health check endpoint for Render
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -125,7 +149,6 @@ app.get('/login', (req, res) => {
   if (req.session && req.session.isAdmin) {
     return res.redirect('/gestao/codigos');
   }
-
   res.render('login', {
     error: null,
     next: req.query.next || '/gestao/codigos',
@@ -172,8 +195,7 @@ app.get('/search', async (req, res) => {
       }
     } catch (err) {
       console.error('Failed to retrieve document:', err);
-      error =
-        'Ocorreu um problema ao pesquisar na base de dados. Tente novamente.';
+      error = 'Ocorreu um problema ao pesquisar na base de dados. Tente novamente.';
     }
 
     const { data, error: apiFetchError } = await fetchPostalApi(postalCode);
@@ -250,8 +272,7 @@ app.post('/upload', upload.single('csvFile'), async (req, res) => {
         console.error('Failed to insert documents:', err);
         res.status(500).render('upload', {
           message: null,
-          error:
-            'Falha ao inserir os registos na base de dados. Verifique os logs do servidor.',
+          error: 'Falha ao inserir os registos na base de dados. Verifique os logs do servidor.',
         });
       }
     })
@@ -366,14 +387,12 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
   const centro = (req.body.centro || '').trim();
   const sabadoRaw = (req.body.sabado || '').trim().toUpperCase();
 
-  // Get current filters from query params to preserve them
   const filterLocalidade = (req.query.localidade || '').trim();
   const filterPrefix = (req.query.prefixo || '').trim();
   const filterSabado = (req.query.sabado || '').trim().toUpperCase();
   const currentPage = Math.max(parseInt(req.query.pagina, 10) || 1, 1);
 
   if (!cp) {
-    const collection = mongoose.connection.collection('Locales');
     const matchFilter = {};
     if (filterLocalidade) {
       matchFilter.LOCALIDADE = { $regex: new RegExp(filterLocalidade, 'i') };
@@ -508,7 +527,6 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
 
     const dbRecordId = dbRecord && dbRecord._id ? dbRecord._id.toString() : null;
 
-    // Get filters and pagination for the list
     const matchFilter = {};
     if (filterLocalidade) {
       matchFilter.LOCALIDADE = { $regex: new RegExp(filterLocalidade, 'i') };
@@ -622,25 +640,6 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
   }
 });
 
-async function startServer() {
-  try {
-    if (!MONGODB_URI || typeof MONGODB_URI !== 'string') {
-      throw new Error('MONGODB_URI is not defined or is not a valid string. Please set the MONGODB_URI environment variable.');
-    }
-
-    await mongoose.connect(MONGODB_URI, {
-      dbName: 'Cadilhes',
-    });
-    console.log('Connected to MongoDB');
-
-    app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
-    });
-  } catch (err) {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-  }
-}
-
-startServer();
+// Export the serverless handler
+module.exports.handler = serverless(app);
 

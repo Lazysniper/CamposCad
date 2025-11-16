@@ -1,9 +1,13 @@
 services:
   - type: web
-    name: my-node-app
+    name: campos-cadilhe
     env: node
     plan: free
     buildCommand: npm install
     startCommand: npm start
     branch: main
     autoDeploy: true
+    healthCheckPath: /search
+    envVars:
+      - key: NODE_ENV
+        value: production
