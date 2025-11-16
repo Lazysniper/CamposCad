@@ -1,3 +1,6 @@
+// Ensure ejs is loaded before express tries to use it
+require('ejs');
+
 const serverless = require('serverless-http');
 const express = require('express');
 const path = require('path');
@@ -106,7 +109,9 @@ const upload = multer({
 });
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '../../views'));
+// For Netlify, views are in the root views directory
+const viewsPath = path.join(__dirname, '../../views');
+app.set('views', viewsPath);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(
@@ -642,4 +647,3 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
 
 // Export the serverless handler
 module.exports.handler = serverless(app);
-
