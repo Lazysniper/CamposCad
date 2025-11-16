@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const path = require('path');
 const fs = require('fs');
 const express = require('express');
@@ -13,8 +15,8 @@ const MONGODB_URI =
   process.env.MONGODB_URI;
 const POSTAL_API_KEY =
   process.env.POSTAL_API_KEY;
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '1234';
+const ADMIN_USER = process.env.ADMIN_USER;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const PAGE_SIZE = Number(process.env.PAGE_SIZE) || 20;
 
 mongoose.set('strictQuery', false);
@@ -359,7 +361,38 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
   const centro = (req.body.centro || '').trim();
   const sabadoRaw = (req.body.sabado || '').trim().toUpperCase();
 
+  // Get current filters from query params to preserve them
+  const filterLocalidade = (req.query.localidade || '').trim();
+  const filterPrefix = (req.query.prefixo || '').trim();
+  const filterSabado = (req.query.sabado || '').trim().toUpperCase();
+  const currentPage = Math.max(parseInt(req.query.pagina, 10) || 1, 1);
+
   if (!cp) {
+    const collection = mongoose.connection.collection('Locales');
+    const matchFilter = {};
+    if (filterLocalidade) {
+      matchFilter.LOCALIDADE = { $regex: new RegExp(filterLocalidade, 'i') };
+    }
+    if (filterPrefix) {
+      matchFilter.CP = { $regex: new RegExp(`^${filterPrefix}`) };
+    }
+    if (filterSabado === 'S' || filterSabado === 'N') {
+      matchFilter.SABADO = filterSabado;
+    }
+    const listQuery = {
+      ...(Object.keys(matchFilter).length ? { $and: Object.entries(matchFilter).map(([key, value]) => ({ [key]: value })) } : {}),
+    };
+    const totalCount = await collection.countDocuments(listQuery);
+    const totalPages = Math.max(Math.ceil(totalCount / PAGE_SIZE), 1);
+    const safePage = Math.min(currentPage, totalPages);
+    const localesList = await collection
+      .find(listQuery)
+      .project({ CP: 1, LOCALIDADE: 1, SABADO: 1, GIRO: 1 })
+      .sort({ CP: 1 })
+      .skip((safePage - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .toArray();
+
     return res.status(400).render('manage', {
       postalCode: cp,
       formValues: {
@@ -376,11 +409,47 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
       notFoundMessage: null,
       message: null,
       error: 'O campo Código Postal é obrigatório.',
+      filters: {
+        localidade: filterLocalidade,
+        prefixo: filterPrefix,
+        sabado: filterSabado,
+      },
+      pagination: {
+        page: safePage,
+        totalPages,
+        pageSize: PAGE_SIZE,
+        totalCount,
+      },
+      localesList,
     });
   }
 
   if (sabadoRaw && !['S', 'N'].includes(sabadoRaw)) {
     const { data, error } = await fetchPostalApi(cp);
+    const matchFilter = {};
+    if (filterLocalidade) {
+      matchFilter.LOCALIDADE = { $regex: new RegExp(filterLocalidade, 'i') };
+    }
+    if (filterPrefix) {
+      matchFilter.CP = { $regex: new RegExp(`^${filterPrefix}`) };
+    }
+    if (filterSabado === 'S' || filterSabado === 'N') {
+      matchFilter.SABADO = filterSabado;
+    }
+    const listQuery = {
+      ...(Object.keys(matchFilter).length ? { $and: Object.entries(matchFilter).map(([key, value]) => ({ [key]: value })) } : {}),
+    };
+    const totalCount = await collection.countDocuments(listQuery);
+    const totalPages = Math.max(Math.ceil(totalCount / PAGE_SIZE), 1);
+    const safePage = Math.min(currentPage, totalPages);
+    const localesList = await collection
+      .find(listQuery)
+      .project({ CP: 1, LOCALIDADE: 1, SABADO: 1, GIRO: 1 })
+      .sort({ CP: 1 })
+      .skip((safePage - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .toArray();
+
     return res.status(400).render('manage', {
       postalCode: cp,
       formValues: {
@@ -391,11 +460,24 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
         SABADO: sabadoRaw,
       },
       dbRecord: null,
+      dbRecordId: null,
       apiData: data,
       apiError: error,
       notFoundMessage: null,
       message: null,
       error: 'Introduza S para Sim ou N para Não no campo Sábado.',
+      filters: {
+        localidade: filterLocalidade,
+        prefixo: filterPrefix,
+        sabado: filterSabado,
+      },
+      pagination: {
+        page: safePage,
+        totalPages,
+        pageSize: PAGE_SIZE,
+        totalCount,
+      },
+      localesList,
     });
   }
 
@@ -421,6 +503,31 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
 
     const dbRecordId = dbRecord && dbRecord._id ? dbRecord._id.toString() : null;
 
+    // Get filters and pagination for the list
+    const matchFilter = {};
+    if (filterLocalidade) {
+      matchFilter.LOCALIDADE = { $regex: new RegExp(filterLocalidade, 'i') };
+    }
+    if (filterPrefix) {
+      matchFilter.CP = { $regex: new RegExp(`^${filterPrefix}`) };
+    }
+    if (filterSabado === 'S' || filterSabado === 'N') {
+      matchFilter.SABADO = filterSabado;
+    }
+    const listQuery = {
+      ...(Object.keys(matchFilter).length ? { $and: Object.entries(matchFilter).map(([key, value]) => ({ [key]: value })) } : {}),
+    };
+    const totalCount = await collection.countDocuments(listQuery);
+    const totalPages = Math.max(Math.ceil(totalCount / PAGE_SIZE), 1);
+    const safePage = Math.min(currentPage, totalPages);
+    const localesList = await collection
+      .find(listQuery)
+      .project({ CP: 1, LOCALIDADE: 1, SABADO: 1, GIRO: 1 })
+      .sort({ CP: 1 })
+      .skip((safePage - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .toArray();
+
     res.render('manage', {
       postalCode: cp,
       formValues: {
@@ -437,11 +544,47 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
       notFoundMessage: null,
       message: 'Registo guardado com sucesso.',
       error: null,
+      filters: {
+        localidade: filterLocalidade,
+        prefixo: filterPrefix,
+        sabado: filterSabado,
+      },
+      pagination: {
+        page: safePage,
+        totalPages,
+        pageSize: PAGE_SIZE,
+        totalCount,
+      },
+      localesList,
     });
   } catch (err) {
     console.error('Erro ao guardar registo:', err);
 
     const { data, error } = await fetchPostalApi(cp);
+    const matchFilter = {};
+    if (filterLocalidade) {
+      matchFilter.LOCALIDADE = { $regex: new RegExp(filterLocalidade, 'i') };
+    }
+    if (filterPrefix) {
+      matchFilter.CP = { $regex: new RegExp(`^${filterPrefix}`) };
+    }
+    if (filterSabado === 'S' || filterSabado === 'N') {
+      matchFilter.SABADO = filterSabado;
+    }
+    const listQuery = {
+      ...(Object.keys(matchFilter).length ? { $and: Object.entries(matchFilter).map(([key, value]) => ({ [key]: value })) } : {}),
+    };
+    const totalCount = await collection.countDocuments(listQuery);
+    const totalPages = Math.max(Math.ceil(totalCount / PAGE_SIZE), 1);
+    const safePage = Math.min(currentPage, totalPages);
+    const localesList = await collection
+      .find(listQuery)
+      .project({ CP: 1, LOCALIDADE: 1, SABADO: 1, GIRO: 1 })
+      .sort({ CP: 1 })
+      .skip((safePage - 1) * PAGE_SIZE)
+      .limit(PAGE_SIZE)
+      .toArray();
+
     res.status(500).render('manage', {
       postalCode: cp,
       formValues: {
@@ -458,12 +601,28 @@ app.post('/gestao/codigos', requireAdmin, async (req, res) => {
       notFoundMessage: null,
       message: null,
       error: 'Não foi possível guardar o registo. Tente novamente.',
+      filters: {
+        localidade: filterLocalidade,
+        prefixo: filterPrefix,
+        sabado: filterSabado,
+      },
+      pagination: {
+        page: safePage,
+        totalPages,
+        pageSize: PAGE_SIZE,
+        totalCount,
+      },
+      localesList,
     });
   }
 });
 
 async function startServer() {
   try {
+    if (!MONGODB_URI || typeof MONGODB_URI !== 'string') {
+      throw new Error('MONGODB_URI is not defined or is not a valid string. Please set the MONGODB_URI environment variable.');
+    }
+
     await mongoose.connect(MONGODB_URI, {
       dbName: 'Cadilhes',
     });

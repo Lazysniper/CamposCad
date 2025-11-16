@@ -71,7 +71,7 @@
 
         <button
           type="submit"
-          class="self-end rounded-lg bg-brand px-6 py-3 text-white font-semibold shadow-sm transition hover:bg-brandHover md:self-center"
+          class="self-end rounded-lg border-2 border-brand bg-white px-6 py-3 text-brand font-semibold shadow-sm transition hover:bg-brand hover:text-white md:self-center"
         >
           Pesquisar
         </button>
@@ -156,15 +156,15 @@
               <p class="mt-2 text-sm text-textMuted">
                 Estamos a trabalhar para expandir rapidamente a nossa rota. Envie-nos um email para
                 <a class="font-medium text-brandLight underline decoration-brandLight underline-offset-4" href="mailto:suport@CamposCsdilhe.pt">
-                  suport@CamposCsdilhe.pt
+                  apoiocliente@c-c.pt
                 </a>
                 e avise-nos da sua necessidade. Vamos alertá-lo assim que passarmos a entregar aí!
               </p>
             </div>
           </div>
           <a
-            href="mailto:suport@CamposCsdilhe.pt?subject=Interesse%20em%20entregas%20no%20c%C3%B3digo%20<%= encodeURIComponent(postalCode) %>"
-            class="inline-flex items-center gap-2 self-start rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brandHover"
+            href="mailto:apoiocliente@c-c.pt?subject=Interesse%20em%20entregas%20no%20c%C3%B3digo%20<%= encodeURIComponent(postalCode) %>"
+            class="inline-flex items-center gap-2 self-start rounded-lg border-2 border-brand bg-white px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand hover:text-white"
           >
             Contactar suporte
           </a>
@@ -214,15 +214,7 @@
       </section>
       <% } %>
 
-      <div class="mt-10 text-center">
-        <a
-          class="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brandHover"
-          href="/"
-        >
-          <span aria-hidden="true">←</span>
-          Voltar ao upload CSV
-        </a>
-      </div>
+      
     </div>
   </body>
 </html>
